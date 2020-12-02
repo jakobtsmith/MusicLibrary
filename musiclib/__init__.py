@@ -1,15 +1,30 @@
 from flask import Flask, request
+from flask_bcrypt import Bcrypt
 from flaskext.mysql import MySQL
+import secrets
+
 app = Flask(__name__)
 
 mysql = MySQL()
-app.config['MYSQL_DATABASE_HOST'] = 'localhost'
-print("Enter user:")
+
+
+app.config['MYSQL_DATABASE_HOST'] = '10.144.192.158'
+print("Enter username:")
 app.config['MYSQL_DATABASE_USER'] = input()
-print("Enter pass:")
+print("Enter password:")
 app.config['MYSQL_DATABASE_PASSWORD'] = input()
-app.config['MYSQL_DATABASE_DB'] = 'jts0270'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://' + app.config['MYSQL_DATABASE_USER'] + ':' + app.config['MYSQL_DATABASE_PASSWORD'] + '@10.144.192.158/jts0270'
 mysql.init_app(app)
+
+bcrypt = Bcrypt(app)
+conn = mysql.connect()
+
+
+
+
+'''
+
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -23,5 +38,17 @@ def index():
     conn.close()
     return str(data)
 
-if __name__ == '__main__':
-    app.run(host='10.144.192.158', port = 8080)
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
