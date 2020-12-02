@@ -5,7 +5,7 @@ from musiclib.forms import RegisterForm, LoginForm
 # homepage is the login page
 @app.route('/', methods=['GET', 'POST'])
 def Login():
-    pass
+    return render_template('login.html', title='Login')
     # cur = conn.cursor()
     # cur.execute("SELECT * FROM Artist")
     # data = []
@@ -15,7 +15,6 @@ def Login():
     # conn.close()
     # return str(data)
 
-two = 1*1
 @app.route('/register', methods=['GET', 'POST'])
 def Register():
     if current_user.is_authenticated:

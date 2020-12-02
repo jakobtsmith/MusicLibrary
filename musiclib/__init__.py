@@ -8,12 +8,11 @@ app = Flask(__name__)
 mysql = MySQL()
 
 
-app.config['MYSQL_DATABASE_HOST'] = '10.144.192.158'
+app.config['MYSQL_DATABASE_HOST'] = 'local'
 print("Enter username:")
 app.config['MYSQL_DATABASE_USER'] = input()
 print("Enter password:")
-app.config['MYSQL_DATABASE_PASSWORD'] = input()
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://' + app.config['MYSQL_DATABASE_USER'] + ':' + app.config['MYSQL_DATABASE_PASSWORD'] + '@10.144.192.158/jts0270'
+app.config['MYSQL_DATABASE_DB'] = 'jts0270'
 mysql.init_app(app)
 
 bcrypt = Bcrypt(app)
