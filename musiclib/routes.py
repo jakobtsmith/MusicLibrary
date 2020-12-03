@@ -50,29 +50,79 @@ def Register():
 def Account():
     return render_template('account.html', title='Search')
 
-@app.route('/search', methods=['GET'])
+@app.route('/search', methods=['GET', 'POST'])
 def Search():
-
     search = SearchForm(request.form)
+    if request.method == 'POST':
+        return Results(search)
+    return render_template('search.html', title='Search', form=search)
+
+@app.route('/results')
+def Results(search):
     results = []
     searchStr = search.data['search']
-    print(search)
-    if search.data['search'] == '':
+    print(search.data)
+    if(search.select.data != None):
+        table = search.select.data
         cur = conn.cursor()
-        cur.execute("SELECT * FROM %s", (search.select.data))
-        results = cur.fetchall()
-        for result in results:
-            print(result + "\n")
-    
+        if search.data['search'] == '':
+            if(table == 'Artist'):
+                cur.execute("SELECT name FROM Artist")
+                results = cur.fetchall()
+                for result in results:
+                    print(result)
+            elif(table == 'Album'):
+                cur.execute("SELECT name FROM Album")
+                results = cur.fetchall()
+                for result in results:
+                    print(result)
+            elif(table == 'Song'):
+                cur.execute("SELECT name FROM Song")
+                results = cur.fetchall()
+                for result in results:
+                    print(result)
+            elif(table == 'User'):
+                cur.execute("SELECT name FROM User")
+                results = cur.fetchall()
+                for result in results:
+                    print(result)
+            else:
+                flash('Invalid table selection')
+                return redirect(url_for('Search'))
+        else:
+            if(table == 'Artist'):
+                cur.execute("SELECT name FROM Artist WHERE name = %s or genre = %s", (search.data['search'], search.data['search']))
+                results = cur.fetchall()
+                for result in results:
+                    print(result)
+            elif(table == 'Album'):
+                cur.execute("SELECT title FROM Album WHERE title = %s or genre = %s", (search.data['search'], search.data['search']))
+                results = cur.fetchall()
+                for result in results:
+                    print(result)
+            elif(table == 'Song'):
+                cur.execute("SELECT title FROM Song WHERE title = %s or genre = %s", (search.data['search'], search.data['search']))
+                results = cur.fetchall()
+                for result in results:
+                    print(result)
+            elif(table == 'User'):
+                cur.execute("SELECT username FROM User WHERE username = %s or email = %s", (search.data['search'], search.data['search']))
+                results = cur.fetchall()
+                for result in results:
+                    print(result)
+            else:
+                flash('Invalid table selection')
+                return redirect(url_for('Search'))
+        cur.close()
+    else:
+        flash('No table selected')
+        return redirect(url_for('Search'))
     if not results:
         flash('No search results')
         return redirect(url_for('Search'))
-
     else:
-        pass # return temp result.html
-    
-    return render_template('search.html', title='Search')
-
+        print(results)
+        return render_template('results.html', title='Results', results=results)
 
 
 @app.route('/logout')
