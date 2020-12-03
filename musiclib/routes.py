@@ -1,6 +1,6 @@
 from flask import render_template, url_for, flash, redirect, request
 from musiclib import app, conn, bcrypt, mysql
-from musiclib.forms import RegisterForm, LoginForm
+from musiclib.forms import RegisterForm, LoginForm, SearchForm
 from musiclib.models import User
 from flask_login import login_user, current_user, logout_user, login_required
 
@@ -50,11 +50,37 @@ def Register():
 def Account():
     return render_template('account.html', title='Search')
 
-@app.route('/search', methods=['GET', 'POST'])
+@app.route('/search', methods=['GET'])
 def Search():
+
+    search = SearchForm(request.form)
+    results = []
+    searchStr = search.data['search']
+    print(search)
+    if search.data['search'] == '':
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM %s", (search.select.data))
+        results = cur.fetchall()
+        for result in results:
+            print(result + "\n")
+    
+    if not results:
+        flash('No search results')
+        return redirect(url_for('Search'))
+
+    else:
+        pass # return temp result.html
+    
     return render_template('search.html', title='Search')
+
+
 
 @app.route('/logout')
 def Logout():
     logout_user()
     return redirect(url_for('Login'))
+
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html', title='404')

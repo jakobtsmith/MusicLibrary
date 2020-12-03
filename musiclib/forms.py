@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, BooleanField
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, SelectField
 from flask_login import current_user
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 
@@ -22,3 +22,12 @@ class LoginForm(FlaskForm):
     remember = BooleanField('Remember Me')
     submit = SubmitField('Login')
 
+
+class SearchForm(FlaskForm):
+
+    choices = [('Artist', 'Artist'),
+               ('Album', 'Album'),
+               ('Songs', 'Songs'),
+               ('User', 'User')] 
+    select = SelectField('Search for music', choices=choices)
+    search = StringField('')
