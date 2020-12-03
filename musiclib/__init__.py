@@ -23,10 +23,11 @@ mysql.init_app(app)
 
 bcrypt = Bcrypt(app)
 conn = mysql.connect()
+loginManager = LoginManager()
+loginManager.login_view = 'Login'   
+loginManager.login_message_category = 'info'
+loginManager.init_app(app)
 
-# loginManager = LoginManager(app)
-# loginManager.login_view = 'Login'
-# loginManager.login_message_category = 'info'
 
 from musiclib import routes
 
