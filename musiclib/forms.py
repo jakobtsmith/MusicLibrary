@@ -29,6 +29,6 @@ class SearchForm(FlaskForm):
                ('Album', 'Album'),
                ('Songs', 'Songs'),
                ('User', 'User')] 
-    select = SelectField('Search for music', choices=choices)
+    select = SelectField('Select a field', choices=choices)
     search = StringField('')
     submit = SubmitField('Search')

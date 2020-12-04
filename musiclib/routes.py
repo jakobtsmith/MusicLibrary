@@ -20,7 +20,7 @@ def Login():
             if bcrypt.check_password_hash(user.password, form.password.data):
                 flash('You\'ve logged in successfully!', 'success')
                 login_user(user, remember=form.remember.data)
-                return redirect(url_for('Account'))
+                return redirect(url_for('Search'))
             else:
                 flash('Login Unsuccessful. Check email and password', 'danger')
         else:
@@ -103,10 +103,10 @@ def Results(search):
                 return redirect(url_for('Search'))
         cur.close()
     else:
-        flash('No table selected')
+        flash('Table not selected', 'info')
         return redirect(url_for('Search'))
     if not results:
-        flash('No search results')
+        flash('Results not found', 'info')
         return redirect(url_for('Search'))
     else:
         # for result in results:
@@ -127,25 +127,65 @@ def Artist():
     cur.close()
     if results != None:
         return render_template('artist.html', title='Artist', results=results, artistname=artist[0], genre=artist[1])
-    return render_template('artist.html', title='Artist')
+    else:
+        flash("Artist has no albums in our database.")
+        return redirect(url_for('Search'))
 
 @app.route('/album')
 @login_required
 def Album():
     albumID= request.args.get('albumID')
-    
+    cur = conn.cursor()
+    cur.execute("SELECT artistID, title FROM Album WHERE id = %s", (albumID))
+    artist = cur.fetchone()
+    cur.execute("SELECT name FROM Artist WHERE id = %s", (artist[0]))
+    artistname = cur.fetchone()
+    cur.execute("SELECT * FROM Song WHERE albumID = %s", (albumID))
+    results = cur.fetchall()
+    print(results)
+    cur.close()
+    if results != None:
+        return render_template('album.html', artistname=artistname[0], title=artist[1], results=results, genre=results[0][2])
+    else:
+        flash("Album has no songs in our database.", 'info')
+        return redirect(url_for('Search'))
     return render_template('album.html', title='Album')
 
 @app.route('/songs')
 @login_required
-def Songs():
-    songsID= request.args.get('songsID')
-    
-    return render_template('songs.html', title='Songs')
+def Song():
+    songID= request.args.get('songID')
+    cur = conn.cursor()
+    cur.execute("SELECT Song.title, Song.genre, Song.length, Album.title, Artist.name FROM Song, Album, Artist WHERE Song.artistID = Artist.id AND Song.albumID = Album.id AND Song.id = %s", (songID))
+    results = cur.fetchone()
+    print(results)
+
+    cur.close()
+#  artistname=results[4], title=results[0], genre=results[1], length=results[2], albumtitle=results[3], 
+    if results != None:
+        return render_template('songs.html', results=results)
+    else:
+        flash("This song wasn't found in our database.", 'info')
+        return redirect(url_for('Search'))
+    return render_template('songs.html', title='Song')
 
 @app.route('/user')
 @login_required
 def UserPage():
+    userID= request.args.get('userID')
+
+    return render_template('user.html', title='User')
+
+@app.route('/public')
+@login_required
+def PublicPlaylist():
+        userID= request.args.get('userID')
+
+    return render_template('user.html', title='User')
+
+@app.route('/private')
+@login_required
+def PrivatePlaylist():
     userID= request.args.get('userID')
 
     return render_template('user.html', title='User')
