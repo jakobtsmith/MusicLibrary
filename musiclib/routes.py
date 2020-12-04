@@ -16,6 +16,7 @@ def Login():
         cur = conn.cursor()
         cur.execute("SELECT * FROM User WHERE email = %s", (form.email.data))
         temp = cur.fetchone()
+        cur.close()
         if temp != None:
             user = MyUser(temp[0], temp[1], temp[2], temp[3])
             if bcrypt.check_password_hash(user.password, form.password.data):
@@ -91,6 +92,7 @@ def Results(search):
                 results = cur.fetchall()
             else:
                 flash('Invalid table selection')
+                cur.close()
                 return redirect(url_for('Search'))
          # if one thing is selected
         else:
@@ -108,6 +110,7 @@ def Results(search):
                 results = cur.fetchall()
             else:
                 flash('Invalid table selection')
+                cur.close()
                 return redirect(url_for('Search'))
         cur.close()
     else:
@@ -252,17 +255,29 @@ def DeleteSong():
     if playlistType == 'public':
         cur=conn.cursor()
         cur.execute("delete from PublicSongs where playlistID=%s and songid=%s", (playlistID, songID))
+        conn.commit()
         cur.execute("SELECT PublicSongs.songid, Song.title, Artist.name, Album.title FROM PublicSongs, Song, Artist, Album WHERE PublicSongs.playlistID = %s AND PublicSongs.songid = Song.id AND Artist.id = Song.artistID AND Album.id = Song.albumID", playlistID)
         results = cur.fetchall()
-        if results == None:
+        print(len(results))
+        if not results:
             cur.execute("delete from PublicPlaylist where id=%s ", playlistID)
+            conn.commit()
+            cur.close()
             return redirect(url_for('Account'))
+        cur.close()
         return render_template('playlist.html', title='View', candelete=candelete, name=name, results=results, playlistid=playlistID, playlistType='public')
     elif playlistType == 'private':
         cur=conn.cursor()
         cur.execute("delete from PrivateSongs where playlistID=%s and songid=%s", (playlistID, songID))
+        conn.commit()
         cur.execute("SELECT PrivateSongs.songid, Song.title, Artist.name, Album.title FROM PrivateSongs, Song, Artist, Album WHERE PrivateSongs.playlistID = %s AND PrivateSongs.songid = Song.id AND Artist.id = Song.artistID AND Album.id = Song.albumID", playlistID)
         results = cur.fetchall()
+        if not results:
+            cur.execute("delete from PrivatePlaylist where id=%s ", playlistID)
+            conn.commit()
+            cur.close()
+            return redirect(url_for('Account'))
+        cur.close()
         return render_template('playlist.html', title='View', candelete=candelete, name=name, results=results, playlistid=playlistID, playlistType='private')
     else:
         flash(f"Failed to delete your song from { name }. Try again.", 'info')
@@ -306,9 +321,9 @@ def AddPublicSong():
     results = cur.fetchall()
     cur.execute("SELECT songid FROM PublicSongs WHERE songid = %s", songID)
     check = cur.fetchone()
-    print(check)
     if check != None:
         flash(f"The song you've selected is already in { playlist }", 'info')
+        cur.close()
         return redirect(url_for('Search'))
     else:
         cur.execute("INSERT INTO PublicSongs(id, userid, songid, playlistID) VALUES(NULL, %s, %s, %s)", (userid, songID, results[0]))
@@ -327,8 +342,8 @@ def AddPrivateSong():
     results = cur.fetchone()
     cur.execute("SELECT songid FROM PrivateSongs WHERE songid = %s", songID)
     check = cur.fetchone()
-    print(check)
     if check != None:
+        cur.close()
         flash(f"The song you've selected is already in { playlist }", 'info')
         return redirect(url_for('Search'))
     else:
