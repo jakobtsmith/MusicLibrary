@@ -1,4 +1,24 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h1>Account</h1>
+    {% if current_user.username != username %}
+        <h1>get the FUCK outta here</h1>
+    {% else %}
+        <h1>{{username}}'s Account</h1>
+        <h1>Public Playlists:</h1>
+        {% if public %}
+            {% for list in public %}
+                <a href="{{url_for('ViewPlaylist', playlistID=list[3], name=list[0])}}" class="btn btn-light">{{ list[0] }}</a> <br>
+            {% endfor %}
+        {% else %}
+            <h1>No Public Playlists</h1>
+        {% endif %}
+        <h1>Private Playlists:</h1>
+        {% if private %}
+            {% for list in private %}
+                <a href="{{url_for('ViewPrivate', playlistID=list[3], name=list[0])}}" class="btn btn-light">{{ list[0] }}</a> <br>
+            {% endfor %}
+        {% else %}
+            <h1>No Private Playlists</h1>
+        {% endif %}
+    {% endif %}
 {% endblock content %}

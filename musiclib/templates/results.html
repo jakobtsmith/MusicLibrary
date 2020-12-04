@@ -16,7 +16,7 @@ p.big {
               {% elif table  == "Album" %}
               <a class="mr-2" href="{{url_for('Album', albumID=result[0])}}">{{ result[1] }}</a> <br>
               {% elif table  == "Songs" %}
-              <a class="mr-2" href="{{url_for('Songs', songsID=result[0])}}">{{ result[1] }}</a> <br>
+              <a class="mr-2" href="{{url_for('Song', songID=result[0])}}">{{ result[1] }}</a> <br>
               {% elif table  == "User" %}
               <a class="mr-2" href="{{url_for('UserPage', userID=result[0])}}">{{ result[1] }}</a> <br>
               {% endif %}

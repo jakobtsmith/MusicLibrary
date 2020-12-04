@@ -32,3 +32,7 @@ class SearchForm(FlaskForm):
     select = SelectField('Select a field', choices=choices)
     search = StringField('')
     submit = SubmitField('Search')
+
+class PlaylistForm(FlaskForm):
+    playlistName = StringField('Enter the name of a new playlist or select one from below',  validators=[DataRequired(), Length(min=1, max=32)])
+    submit = SubmitField('Submit')

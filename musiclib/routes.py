@@ -1,8 +1,9 @@
 from flask import render_template, url_for, flash, redirect, request
 from musiclib import app, conn, bcrypt, mysql
-from musiclib.forms import RegisterForm, LoginForm, SearchForm
-from musiclib.models import User
+from musiclib.forms import RegisterForm, LoginForm, SearchForm, PlaylistForm
+from musiclib.models import MyUser
 from flask_login import login_user, current_user, logout_user, login_required
+from datetime import date
 
 # homepage is the login page
 @app.route('/', methods=['GET', 'POST'])
@@ -16,7 +17,7 @@ def Login():
         cur.execute("SELECT * FROM User WHERE email = %s", (form.email.data))
         temp = cur.fetchone()
         if temp != None:
-            user = User(temp[0], temp[1], temp[2], temp[3])
+            user = MyUser(temp[0], temp[1], temp[2], temp[3])
             if bcrypt.check_password_hash(user.password, form.password.data):
                 flash('You\'ve logged in successfully!', 'success')
                 login_user(user, remember=form.remember.data)
@@ -48,7 +49,14 @@ def Register():
 @app.route('/account', methods=['GET', 'POST'])
 @login_required
 def Account():
-    return render_template('account.html', title='Search')
+    username = current_user.get_user()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM PublicPlaylist WHERE userid=%s", current_user.get_id())
+    public=cur.fetchall()
+    cur.execute("SELECT * FROM PrivatePlaylist WHERE userid=%s", current_user.get_id())
+    private=cur.fetchall()
+    cur.close()
+    return render_template('account.html', title='Account', username=username, public=public, private=private)
 
 @app.route('/search', methods=['GET', 'POST'])
 @login_required
@@ -159,11 +167,10 @@ def Song():
     cur.execute("SELECT Song.title, Song.genre, Song.length, Album.title, Artist.name FROM Song, Album, Artist WHERE Song.artistID = Artist.id AND Song.albumID = Album.id AND Song.id = %s", (songID))
     results = cur.fetchone()
     print(results)
-
     cur.close()
 #  artistname=results[4], title=results[0], genre=results[1], length=results[2], albumtitle=results[3], 
     if results != None:
-        return render_template('songs.html', results=results)
+        return render_template('songs.html', results=results, songID=songID)
     else:
         flash("This song wasn't found in our database.", 'info')
         return redirect(url_for('Search'))
@@ -173,22 +180,124 @@ def Song():
 @login_required
 def UserPage():
     userID= request.args.get('userID')
+    results=()
+    cur = conn.cursor()
+    cur.execute("SELECT username FROM User where id = %s", userID)
+    username=cur.fetchone()
+    cur.execute("SELECT * FROM PublicPlaylist WHERE userid=%s", userID)
+    results = cur.fetchall()
+    cur.close()
+    return render_template('publicaccount.html', title='User', username=username[0], results=results)
 
-    return render_template('user.html', title='User')
+@app.route('/view')
+@login_required
+def ViewPlaylist():
+    playlistID=request.args.get('playlistID')
+    name=request.args.get('name')
+    cur = conn.cursor()
+    print(playlistID)
+    cur.execute("SELECT PublicSongs.songid, Song.title, Artist.name, Album.title FROM PublicSongs, Song, Artist, Album WHERE PublicSongs.playlistID = %s AND PublicSongs.songid = Song.id AND Artist.id = Song.artistID AND Album.id = Song.albumID", playlistID)
+    results = cur.fetchall()
+    print(results)
+    cur.close()
+    return render_template('playlist.html', title='View', name=name, results=results)
 
-@app.route('/public')
+@app.route('/privateview')
+@login_required
+def ViewPrivate():
+    playlistID=request.args.get('playlistID')
+    name=request.args.get('name')
+    cur = conn.cursor()
+    print(playlistID)
+    cur.execute("SELECT * FROM PrivateSongs WHERE playlistID = %s", playlistID)
+    results = cur.fetchall()
+    print("BELLO BEAM")
+    print(results)
+    cur.execute("SELECT PrivateSongs.songid, Song.title, Artist.name, Album.title FROM PrivateSongs, Song, Artist, Album WHERE PrivateSongs.playlistID = %s AND PrivateSongs.songid = Song.id AND Artist.id = Song.artistID AND Album.id = Song.albumID", playlistID)
+    results = cur.fetchall()
+    print(results)
+    cur.close()
+    return render_template('playlist.html', title='Private View', name=name, results=results)
+
+@app.route('/public', methods=['GET', 'POST'])
 @login_required
 def PublicPlaylist():
-        userID= request.args.get('userID')
+    songID= request.args.get('songID')
+    form = PlaylistForm()
+    if form.validate_on_submit():
+        userid = current_user.get_id()
+        cur=conn.cursor()
+        cur.execute("SELECT id FROM PublicPlaylist WHERE name = %s", form.playlistName.data)
+        results = cur.fetchall()
+        if(len(results) > 0):
+            flash("Playlist with that name already exists")
+            return redirect(url_for('Search'))
+        cur.execute("INSERT INTO PublicPlaylist(name, datecreated, userid, id) VALUES(%s, %s, %s, NULL)", (form.playlistName.data, date.today(), userid))
+        conn.commit()
+        cur.execute("INSERT INTO PublicSongs(id, userid, songid, playlistID) VALUES(NULL, %s, %s, LAST_INSERT_ID())", (userid, songID))
+        conn.commit()
+        cur.close()
+        return redirect(url_for('Search'))
+    cur = conn.cursor()
+    cur.execute("SELECT DISTINCT name FROM PublicPlaylist where userid=%s", (current_user.get_id()))
+    results = cur.fetchall()
+    cur.close()
+    reqtype = 'Public'
+    return render_template('user.html', form=form, title='User', results=results, songID=songID, reqtype=reqtype)
 
-    return render_template('user.html', title='User')
-
-@app.route('/private')
+@app.route('/private', methods=['GET', 'POST'])
 @login_required
 def PrivatePlaylist():
-    userID= request.args.get('userID')
+    songID= request.args.get('songID')
+    form = PlaylistForm()
+    if form.validate_on_submit():
+        userid = current_user.get_id()
+        cur=conn.cursor()
+        cur.execute("SELECT id FROM PrivatePlaylist WHERE name = %s", form.playlistName.data)
+        results = cur.fetchall()
+        if(len(results) > 0):
+            flash("Playlist with that name already exists")
+            return redirect(url_for('Search'))
+        cur.execute("INSERT INTO PrivatePlaylist(name, datecreated, userid, id) VALUES(%s, %s, %s, NULL)", (form.playlistName.data, date.today(), userid))
+        conn.commit()
+        cur.execute("INSERT INTO PrivateSongs(id, userid, songid, playlistID) VALUES(NULL, %s, %s, LAST_INSERT_ID())", (userid, songID))
+        conn.commit()
+        cur.close()
+        return redirect(url_for('Search'))
+    cur = conn.cursor()
+    cur.execute("SELECT DISTINCT name FROM PrivatePlaylist where userid=%s", (current_user.get_id()))
+    results = cur.fetchall()
+    cur.close()
+    reqtype = 'Private'
+    return render_template('user.html', form=form, title='User', results=results, songID=songID, reqtype=reqtype)
 
-    return render_template('user.html', title='User')
+@app.route('/addpublic')
+@login_required
+def AddPublicSong():
+    playlist = request.args.get('playlist')
+    userid = current_user.get_id()
+    songID = request.args.get('songID')
+    cur=conn.cursor()
+    cur.execute("SELECT id FROM PublicPlaylist WHERE name = %s", playlist)
+    results = cur.fetchall()
+    cur.execute("INSERT INTO PublicSongs(id, userid, songid, playlistID) VALUES(NULL, %s, %s, %s)", (userid, songID, results[0]))
+    conn.commit()
+    cur.close()
+    return redirect(url_for('Search'))
+
+@app.route('/addprivate')
+@login_required
+def AddPrivateSong():
+    playlist = request.args.get('playlist')
+    userid = current_user.get_id()
+    songID = request.args.get('songID')
+    cur=conn.cursor()
+    cur.execute("SELECT id FROM PrivatePlaylist WHERE name = %s", playlist)
+    results = cur.fetchone()
+    cur.execute("INSERT INTO PrivateSongs(id, userid, songid, playlistID) VALUES(NULL, %s, %s, %s)", (userid, songID, results[0]))
+    conn.commit()
+    cur.close()
+    return redirect(url_for('Search'))
 
 @app.route('/logout')
 def Logout():

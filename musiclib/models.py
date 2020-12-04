@@ -1,14 +1,15 @@
 from flask_login import UserMixin
+from musiclib import mysql
 from musiclib import loginManager
 
 @loginManager.user_loader
 def load_user(ID):
-    return User
+    cur = mysql.connect().cursor()
+    cur.execute("SELECT * FROM User WHERE id=%s", ID)
+    result=cur.fetchone()
+    return MyUser(result[0], result[1], result[2], result[3])
 
-
-
-class User(UserMixin):
-
+class MyUser(UserMixin):
     def __init__(self, ID, username, password, email, active=True):
         self.ID = ID
         self.username = username
@@ -23,3 +24,6 @@ class User(UserMixin):
 
     def get_id(self):
         return (self.ID)
+
+    def get_user(self):
+        return(self.username)
