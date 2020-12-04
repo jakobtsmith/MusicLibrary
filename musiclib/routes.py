@@ -87,7 +87,7 @@ def Results(search):
                 cur.execute("SELECT * FROM Song")
                 results = cur.fetchall()
             elif(table == 'User'):
-                cur.execute("SELECT * FROM User")
+                cur.execute("SELECT * FROM User WHERE id <> %s", current_user.get_id())
                 results = cur.fetchall()
             else:
                 flash('Invalid table selection')
@@ -192,32 +192,28 @@ def UserPage():
 @app.route('/view')
 @login_required
 def ViewPlaylist():
+    candelete= request.args.get('candelete')
     playlistID=request.args.get('playlistID')
     name=request.args.get('name')
     cur = conn.cursor()
-    print(playlistID)
     cur.execute("SELECT PublicSongs.songid, Song.title, Artist.name, Album.title FROM PublicSongs, Song, Artist, Album WHERE PublicSongs.playlistID = %s AND PublicSongs.songid = Song.id AND Artist.id = Song.artistID AND Album.id = Song.albumID", playlistID)
     results = cur.fetchall()
-    print(results)
     cur.close()
-    return render_template('playlist.html', title='View', name=name, results=results)
+    return render_template('playlist.html', title='View', candelete=candelete, name=name, results=results, playlistid=playlistID, playlistType='public')
 
 @app.route('/privateview')
 @login_required
 def ViewPrivate():
+    candelete= request.args.get('candelete')
     playlistID=request.args.get('playlistID')
     name=request.args.get('name')
     cur = conn.cursor()
-    print(playlistID)
     cur.execute("SELECT * FROM PrivateSongs WHERE playlistID = %s", playlistID)
     results = cur.fetchall()
-    print("BELLO BEAM")
-    print(results)
     cur.execute("SELECT PrivateSongs.songid, Song.title, Artist.name, Album.title FROM PrivateSongs, Song, Artist, Album WHERE PrivateSongs.playlistID = %s AND PrivateSongs.songid = Song.id AND Artist.id = Song.artistID AND Album.id = Song.albumID", playlistID)
     results = cur.fetchall()
-    print(results)
     cur.close()
-    return render_template('playlist.html', title='Private View', name=name, results=results)
+    return render_template('playlist.html', title='Private View', candelete=candelete, name=name, results=results, playlistid=playlistID, playlistType='private')
 
 @app.route('/public', methods=['GET', 'POST'])
 @login_required
@@ -244,6 +240,34 @@ def PublicPlaylist():
     cur.close()
     reqtype = 'Public'
     return render_template('user.html', form=form, title='User', results=results, songID=songID, reqtype=reqtype)
+
+@app.route('/deletesong', methods=['GET', 'POST'])
+@login_required
+def DeleteSong():
+    candelete=request.args.get('candelete')
+    songID= request.args.get('songID')
+    playlistID= request.args.get('playlistid')
+    playlistType= request.args.get('playlistType')
+    name=request.args.get('name')
+    if playlistType == 'public':
+        cur=conn.cursor()
+        cur.execute("delete from PublicSongs where playlistID=%s and songid=%s", (playlistID, songID))
+        cur.execute("SELECT PublicSongs.songid, Song.title, Artist.name, Album.title FROM PublicSongs, Song, Artist, Album WHERE PublicSongs.playlistID = %s AND PublicSongs.songid = Song.id AND Artist.id = Song.artistID AND Album.id = Song.albumID", playlistID)
+        results = cur.fetchall()
+        if results == None:
+            cur.execute("delete from PublicPlaylist where id=%s ", playlistID)
+            return redirect(url_for('Account'))
+        return render_template('playlist.html', title='View', candelete=candelete, name=name, results=results, playlistid=playlistID, playlistType='public')
+    elif playlistType == 'private':
+        cur=conn.cursor()
+        cur.execute("delete from PrivateSongs where playlistID=%s and songid=%s", (playlistID, songID))
+        cur.execute("SELECT PrivateSongs.songid, Song.title, Artist.name, Album.title FROM PrivateSongs, Song, Artist, Album WHERE PrivateSongs.playlistID = %s AND PrivateSongs.songid = Song.id AND Artist.id = Song.artistID AND Album.id = Song.albumID", playlistID)
+        results = cur.fetchall()
+        return render_template('playlist.html', title='View', candelete=candelete, name=name, results=results, playlistid=playlistID, playlistType='private')
+    else:
+        flash(f"Failed to delete your song from { name }. Try again.", 'info')
+        return redirect(url_for('Account'))
+
 
 @app.route('/private', methods=['GET', 'POST'])
 @login_required
@@ -280,10 +304,17 @@ def AddPublicSong():
     cur=conn.cursor()
     cur.execute("SELECT id FROM PublicPlaylist WHERE name = %s", playlist)
     results = cur.fetchall()
-    cur.execute("INSERT INTO PublicSongs(id, userid, songid, playlistID) VALUES(NULL, %s, %s, %s)", (userid, songID, results[0]))
-    conn.commit()
-    cur.close()
-    return redirect(url_for('Search'))
+    cur.execute("SELECT songid FROM PublicSongs WHERE songid = %s", songID)
+    check = cur.fetchone()
+    print(check)
+    if check != None:
+        flash(f"The song you've selected is already in { playlist }", 'info')
+        return redirect(url_for('Search'))
+    else:
+        cur.execute("INSERT INTO PublicSongs(id, userid, songid, playlistID) VALUES(NULL, %s, %s, %s)", (userid, songID, results[0]))
+        conn.commit()
+        cur.close()
+        return redirect(url_for('Search'))
 
 @app.route('/addprivate')
 @login_required
@@ -294,10 +325,17 @@ def AddPrivateSong():
     cur=conn.cursor()
     cur.execute("SELECT id FROM PrivatePlaylist WHERE name = %s", playlist)
     results = cur.fetchone()
-    cur.execute("INSERT INTO PrivateSongs(id, userid, songid, playlistID) VALUES(NULL, %s, %s, %s)", (userid, songID, results[0]))
-    conn.commit()
-    cur.close()
-    return redirect(url_for('Search'))
+    cur.execute("SELECT songid FROM PrivateSongs WHERE songid = %s", songID)
+    check = cur.fetchone()
+    print(check)
+    if check != None:
+        flash(f"The song you've selected is already in { playlist }", 'info')
+        return redirect(url_for('Search'))
+    else:
+        cur.execute("INSERT INTO PrivateSongs(id, userid, songid, playlistID) VALUES(NULL, %s, %s, %s)", (userid, songID, results[0]))
+        conn.commit()
+        cur.close()
+        return redirect(url_for('Search'))
 
 @app.route('/logout')
 def Logout():

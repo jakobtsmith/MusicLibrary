@@ -1,24 +1,27 @@
 {% extends "layout.html" %}
 {% block content %}
+<div class="content-section">
     {% if current_user.username != username %}
-        <h1>get the FUCK outta here</h1>
+        <h1>This isn't your account to view. Go search some more music!</h1>
+        <a class="mr-2" href="{{url_for('Search')}}">Search</a>
     {% else %}
         <h1>{{username}}'s Account</h1>
-        <h1>Public Playlists:</h1>
+        <h3>Public Playlists:</h3>
         {% if public %}
             {% for list in public %}
-                <a href="{{url_for('ViewPlaylist', playlistID=list[3], name=list[0])}}" class="btn btn-light">{{ list[0] }}</a> <br>
+                <a href="{{url_for('ViewPlaylist', candelete='yes', playlistID=list[3], name=list[0])}}" class="btn btn-light">{{ list[0] }}</a> <br>
             {% endfor %}
         {% else %}
             <h1>No Public Playlists</h1>
         {% endif %}
-        <h1>Private Playlists:</h1>
+        <h3>Private Playlists:</h3>
         {% if private %}
             {% for list in private %}
-                <a href="{{url_for('ViewPrivate', playlistID=list[3], name=list[0])}}" class="btn btn-light">{{ list[0] }}</a> <br>
+                <a href="{{url_for('ViewPrivate', candelete='yes', playlistID=list[3], name=list[0])}}" class="btn btn-light">{{ list[0] }}</a> <br>
             {% endfor %}
         {% else %}
             <h1>No Private Playlists</h1>
         {% endif %}
     {% endif %}
+</div>
 {% endblock content %}
