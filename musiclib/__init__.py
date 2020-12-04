@@ -2,7 +2,7 @@ from flask import Flask, request
 from flask_bcrypt import Bcrypt
 from flaskext.mysql import MySQL
 from flask_login import LoginManager
-import secrets
+import secrets as secret
 import os
 
 app = Flask(__name__)
@@ -14,10 +14,8 @@ mysql = MySQL()
 
 
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
-print("Enter username:")
-app.config['MYSQL_DATABASE_USER'] = input()
-print("Enter password:")
-app.config['MYSQL_DATABASE_PASSWORD'] = input()
+app.config['MYSQL_DATABASE_USER'] = secret.USER
+app.config['MYSQL_DATABASE_PASSWORD'] = secret.PASS
 app.config['MYSQL_DATABASE_DB'] = 'jts0270'
 mysql.init_app(app)
 

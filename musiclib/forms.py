@@ -31,3 +31,4 @@ class SearchForm(FlaskForm):
                ('User', 'User')] 
     select = SelectField('Search for music', choices=choices)
     search = StringField('')
+    submit = SubmitField('Search')
